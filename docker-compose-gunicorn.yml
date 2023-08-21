@@ -1,0 +1,53 @@
+version: '3.4'
+
+services:
+  mongodb:
+    image: aashreys/mongo-auth:latest
+    volumes:
+      - ./mongodb-data:/data/db
+    environment:
+      - AUTH=yes
+      - MONGODB_ADMIN_USER=admin
+      - MONGODB_ADMIN_PASS=admin
+      - MONGODB_APPLICATION_DATABASE=app
+      - MONGODB_APPLICATION_USER=app
+      - MONGODB_APPLICATION_PASS=app
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:1.13.10-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - frontend
+
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/usr/src/app
+    working_dir: "/usr/src/app"
+    command: sh -c "sh -x /start.sh"
+    restart: on-failure:5
+    networks:
+      - frontend
+      - backend
+    environment:
+      - LANG=C.UTF-8
+      - MODULE_NAME=app.routes
+      - VARIABLE_NAME=api
+      - PORT=5000
+
+networks:
+  frontend:
+    driver: bridge #or overlay in swarm mode
+  backend:
+    driver: bridge #or overlay in swarm mode
